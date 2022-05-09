@@ -1,0 +1,64 @@
+rm(list=ls())
+
+food<-read.csv(file.choose(),sep="\t",header=TRUE,stringsAsFactors=TRUE,na.strings=c("n/a",""),
+               colClasses=c("integer","factor","factor","factor","integer","integer","integer",
+                            "integer","integer","integer"))
+View(food)
+str(food)
+
+food$Total<-as.integer(rowSums(food[,5:10]))
+
+levels(food$Continent)[levels(food$Continent)=="Europe"]<-"Other"
+levels(food$Continent)[levels(food$Continent)=="Oceania"]<-"Other"
+levels(food$Continent)[levels(food$Continent)=="Asia"]<-"Other"
+levels(food$Continent)[levels(food$Continent)=="Africa"]<-"Other"
+levels(food$Continent)[levels(food$Continent)=="South America"]<-"Other"
+
+
+
+caviar<-prop.table(table(food$Continent,food$Caviar))
+View(caviar)
+
+alligator_test<-chisq.test(table(food$Alligator,food$Gender))
+alligator_test
+#The P-Value of the Chi-Sq test for independence is 0.1669. Thus, we cannot reject the null hypothesis that having eaten alligator and gender are independent
+
+
+age_total<-cor(food$Total,food$Age)
+age_total
+
+at_test<-cor.test(food$Total,food$Age)
+at_test$p.value
+#The Pearson Correlation Coefficient is 0.2527. Thus these variables have a weak, positive linear relationship.
+
+
+
+library(RSocrata)
+
+url<-"https://noaa-fisheries-afsc.data.socrata.com/resource/vsba-nbxa.json?$where=experiment=2011&$select=date,habitat,treatment,carapace_width"
+crab<-read.socrata(url)
+View(crab)
+str(crab)
+
+crab$carapace_width<-as.numeric(crab$carapace_width)
+
+
+
+library(dplyr)
+
+crabs2<-group_by(crab,treatment)
+View(crabs2)
+
+treatment_summary<-summarize(crabs2,
+                             total_crabs=n(),
+                             median_size=median(carapace_width))
+View(treatment_summary)
+
+treated<-crab[crab$treatment=="20","carapace_width"]
+untreated<-crab[crab$treatment=="5","carapace_width"]
+
+treatment_test<-t.test(treated,untreated)
+treatment_test
+#The P-Value of the T-Test is 7.93e-08. Thus we can reject the null hypothesis that average carapace width is equal for the treatment conditions
+
+hist(crab$carapace_width)
